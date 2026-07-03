@@ -4,12 +4,86 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * CatWatch design tokens — executable copy of docs/design.md §3–§5.
+ * Cream base · pink primary · sage accent · warm-brown text/linework.
+ */
+:root {
+  /* Neutrals / base */
+  --bg-main: #f9f3ee;
+  --bg-surface: #fff9f6;
+  --bg-soft: #f6eee7;
+  --border-soft-c: #ebddd2;
+
+  /* Browns / text */
+  --text-main: #5d4035;
+  --text-body: #6e5549;
+  --text-muted-c: #9a8478;
+  --line-brown: #7a5544;
+
+  /* Pink system (primary) */
+  --pink-100: #fdebed;
+  --pink-200: #fad8df;
+  --pink-300: #f7c1cf;
+  --pink-400: #f39bb0;
+  --pink-500: #ec8ea4;
+  --pink-600: #dd7890;
+
+  /* Green accent (sage) */
+  --green-100: #eef7ee;
+  --green-200: #ddeedb;
+  --green-300: #bfddbe;
+  --green-400: #9dcaa3;
+  --green-500: #8fb89a;
+  --green-600: #6e9e7f;
+
+  /* Helpers */
+  --yellow-soft: #f6e5b8;
+  --orange-soft: #f5c79a;
+  --red-soft: #f3b7b3;
+  --blue-soft: #c8ddf2;
+
+  /* shadcn semantic variables, themed to CatWatch (light-only app) */
+  --background: var(--bg-main);
+  --foreground: var(--text-main);
+  --card: var(--bg-surface);
+  --card-foreground: var(--text-main);
+  --popover: var(--bg-surface);
+  --popover-foreground: var(--text-main);
+  --primary: var(--pink-500);
+  --primary-foreground: #ffffff;
+  --secondary: var(--pink-100);
+  --secondary-foreground: var(--text-main);
+  --muted: var(--bg-soft);
+  --muted-foreground: var(--text-muted-c);
+  --accent: var(--green-100);
+  --accent-foreground: var(--green-600);
+  --destructive: #c0564f;
+  --border: var(--border-soft-c);
+  --input: var(--border-soft-c);
+  --ring: var(--pink-400);
+  --chart-1: var(--pink-400);
+  --chart-2: var(--green-400);
+  --chart-3: var(--orange-soft);
+  --chart-4: var(--blue-soft);
+  --chart-5: var(--text-muted-c);
+  --radius: 18px;
+  --sidebar: var(--bg-surface);
+  --sidebar-foreground: var(--text-main);
+  --sidebar-primary: var(--pink-500);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--pink-100);
+  --sidebar-accent-foreground: var(--text-main);
+  --sidebar-border: var(--border-soft-c);
+  --sidebar-ring: var(--pink-400);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fredoka), var(--font-nunito), ui-sans-serif, sans-serif;
+  --font-heading: var(--font-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,82 +113,49 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
 
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
+  /* CatWatch palette as utility colors (bg-cream, text-cocoa, bg-pink-500 …) */
+  --color-cream: var(--bg-main);
+  --color-surface: var(--bg-surface);
+  --color-cream-soft: var(--bg-soft);
+  --color-cocoa: var(--text-main);
+  --color-cocoa-body: var(--text-body);
+  --color-cocoa-muted: var(--text-muted-c);
+  --color-cocoa-line: var(--line-brown);
+  --color-border-soft: var(--border-soft-c);
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --color-pink-100: var(--pink-100);
+  --color-pink-200: var(--pink-200);
+  --color-pink-300: var(--pink-300);
+  --color-pink-400: var(--pink-400);
+  --color-pink-500: var(--pink-500);
+  --color-pink-600: var(--pink-600);
+
+  --color-green-100: var(--green-100);
+  --color-green-200: var(--green-200);
+  --color-green-300: var(--green-300);
+  --color-green-400: var(--green-400);
+  --color-green-500: var(--green-500);
+  --color-green-600: var(--green-600);
+
+  --color-yellow-soft: var(--yellow-soft);
+  --color-orange-soft: var(--orange-soft);
+  --color-red-soft: var(--red-soft);
+  --color-blue-soft: var(--blue-soft);
+
+  /* Radius scale from design.md §5: sm 12 · md 18 · lg 24 · xl 28 · pill 999 */
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+  --radius-xl: 28px;
+  --radius-2xl: 32px;
+  --radius-3xl: 36px;
+  --radius-4xl: 40px;
+  --radius-pill: 999px;
+
+  /* Shadows from design.md §5 */
+  --shadow-soft: 0 6px 20px rgba(140, 108, 89, 0.1);
+  --shadow-lifted: 0 10px 28px rgba(140, 108, 89, 0.14);
 }
 
 @layer base {
@@ -126,5 +167,55 @@
   }
   html {
     @apply font-sans;
+  }
+  ::selection {
+    background: var(--pink-200);
+    color: var(--text-main);
+  }
+}
+
+/* Indeterminate crawl for the CatWatch loading bar */
+@keyframes cw-progress {
+  0% {
+    width: 12%;
+  }
+  55% {
+    width: 78%;
+  }
+  80% {
+    width: 86%;
+  }
+  100% {
+    width: 92%;
+  }
+}
+
+/* Gentle pulse for recent-sighting map dots / missing pins */
+@keyframes cw-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.45;
+  }
+}
+
+/* Soft bob for the loading-card cat doodle */
+@keyframes cw-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cw-motion {
+    animation: none !important;
   }
 }
