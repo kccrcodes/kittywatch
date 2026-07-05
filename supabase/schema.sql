@@ -90,3 +90,43 @@ as $$
   order by embedding <=> query_embedding
   limit 1;
 $$;
+
+-- Register a cat: insert the cat + its founding sighting in one transaction.
+-- Called from POST /api/cats after the API route has already fuzzed the
+-- coordinates and generated the founding CLIP embedding (Postgres can't do
+-- either of those itself). Single RPC instead of two separate REST calls so
+-- a failure can't leave an orphan cat row with no founding sighting.
+create or replace function register_cat(
+  p_name text,
+  p_breed text,
+  p_estimated_age text,
+  p_vaccinated boolean,
+  p_tnr boolean,
+  p_lat float8,
+  p_lng float8,
+  p_photo_url text,
+  p_embedding vector(512)
+)
+returns cats
+language plpgsql
+as $$
+declare
+  new_cat cats;
+begin
+  insert into cats (name, breed, estimated_age, vaccinated, tnr, lat, lng, status, last_seen_at)
+  values (p_name, p_breed, p_estimated_age, p_vaccinated, p_tnr, p_lat, p_lng, 'healthy', now())
+  returning * into new_cat;
+
+  insert into sightings (cat_id, photo_url, embedding, match_score, status_update, notes)
+  values (
+    new_cat.id,
+    p_photo_url,
+    p_embedding,
+    case when p_embedding is null then null else 1.0 end,
+    'healthy',
+    'Founding photo'
+  );
+
+  return new_cat;
+end;
+$$;
