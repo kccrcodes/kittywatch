@@ -3,6 +3,7 @@ import { z } from "zod"
 import { getSupabaseAdminClient } from "@/lib/supabase"
 import { generateClipEmbedding, embeddingToPgVector } from "@/lib/clip"
 import { REID_THRESHOLD, SIGHTING_STATUS } from "@/lib/config"
+import { isSupabaseStorageUrl } from "@/lib/photo-url"
 
 // CLIP model load + inference on a cold start can take a while - give this
 // route more headroom than Vercel's default.
@@ -44,6 +45,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
   const input = parsed.data
+  if (!isSupabaseStorageUrl(input.photo_url)) {
+    return NextResponse.json({ error: "photo_url must be a Supabase Storage URL" }, { status: 400 })
+  }
+
   const supabase = getSupabaseAdminClient()
 
   const { data: cat, error: catLookupError } = await supabase

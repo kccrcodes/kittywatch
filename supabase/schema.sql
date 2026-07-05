@@ -196,13 +196,21 @@ as $$
 declare
   new_sighting sightings;
 begin
+  if p_status_update is null then
+    -- The check constraint allows NULL, and `NULL <> 'not_found'` evaluates
+    -- to NULL (falsy), which would silently skip the cat update below
+    -- instead of erroring - status_update is required by the API contract,
+    -- so reject it explicitly here too.
+    raise exception 'status_update is required' using errcode = '22004';
+  end if;
+
   insert into sightings (cat_id, photo_url, embedding, match_score, status_update, notes)
   values (p_cat_id, p_photo_url, p_embedding, p_match_score, p_status_update, p_notes)
   returning * into new_sighting;
 
   if p_status_update <> 'not_found' then
     update cats
-    set last_seen_at = now(),
+    set last_seen_at = new_sighting.created_at,
         status = case p_status_update when 'injured' then 'needs_attention' else 'healthy' end
     where id = p_cat_id;
   end if;
