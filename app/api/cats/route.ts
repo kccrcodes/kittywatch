@@ -2,11 +2,51 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { getSupabaseAdminClient } from "@/lib/supabase"
 import { generateClipEmbedding, embeddingToPgVector } from "@/lib/clip"
-import { fuzzCoordinate } from "@/lib/geo"
+import { boundingBoxFromRadius, fuzzCoordinate } from "@/lib/geo"
 
 // CLIP model load + inference on a cold start can take a while - give this
 // route more headroom than Vercel's default.
 export const maxDuration = 60
+
+// No explicit default in docs/SPEC.md's API contract - 5km covers a
+// reasonable initial map view without the client always having to specify one.
+const DEFAULT_RADIUS_METERS = 5000
+
+const boundingBoxQuerySchema = z.object({
+  lat: z.coerce.number().min(-90).max(90),
+  lng: z.coerce.number().min(-180).max(180),
+  radius: z.coerce.number().positive().optional().default(DEFAULT_RADIUS_METERS),
+})
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const parsed = boundingBoxQuerySchema.safeParse({
+    // z.coerce.number() would happily coerce a missing param's `null` into
+    // 0 (a "valid" latitude) instead of failing - map missing to undefined
+    // so the required check actually rejects it.
+    lat: searchParams.get("lat") ?? undefined,
+    lng: searchParams.get("lng") ?? undefined,
+    radius: searchParams.get("radius") ?? undefined,
+  })
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+  }
+  const { lat, lng, radius } = parsed.data
+  const box = boundingBoxFromRadius(lat, lng, radius)
+
+  const supabase = getSupabaseAdminClient()
+  const { data, error } = await supabase.rpc("cats_in_bounding_box", {
+    min_lat: box.minLat,
+    max_lat: box.maxLat,
+    min_lng: box.minLng,
+    max_lng: box.maxLng,
+  })
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+  return NextResponse.json(data)
+}
 
 const registerCatSchema = z.object({
   name: z.string().trim().min(1).optional(),

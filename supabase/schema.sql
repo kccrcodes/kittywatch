@@ -130,3 +130,44 @@ begin
   return new_cat;
 end;
 $$;
+
+-- Map pins for GET /api/cats, per docs/SPEC.md. thumbnail_url is the most
+-- recent sighting's photo (falls back to null if a cat somehow has none,
+-- which shouldn't happen since register_cat always creates a founding
+-- sighting). A correlated subquery per row is fine at hackathon scale
+-- (Milestone 3 seeds 15-20 cats) - not worth a lateral join for this.
+create or replace function cats_in_bounding_box(
+  min_lat float8,
+  max_lat float8,
+  min_lng float8,
+  max_lng float8
+)
+returns table(
+  id uuid,
+  name text,
+  status text,
+  lat float8,
+  lng float8,
+  last_seen_at timestamptz,
+  thumbnail_url text
+)
+language sql
+stable
+as $$
+  select
+    c.id,
+    c.name,
+    c.status,
+    c.lat,
+    c.lng,
+    c.last_seen_at,
+    (
+      select s.photo_url from sightings s
+      where s.cat_id = c.id
+      order by s.created_at desc
+      limit 1
+    ) as thumbnail_url
+  from cats c
+  where c.lat between min_lat and max_lat
+    and c.lng between min_lng and max_lng;
+$$;
