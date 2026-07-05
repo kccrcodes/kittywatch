@@ -164,7 +164,7 @@ as $$
     (
       select s.photo_url from sightings s
       where s.cat_id = c.id
-      order by s.created_at desc
+      order by s.created_at desc, s.id desc
       limit 1
     ) as thumbnail_url
   from cats c

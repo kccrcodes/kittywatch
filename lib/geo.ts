@@ -22,11 +22,15 @@ const METERS_PER_DEGREE_LAT = 111_320
  */
 export function boundingBoxFromRadius(lat: number, lng: number, radiusMeters: number) {
   const latDelta = radiusMeters / METERS_PER_DEGREE_LAT
-  const lngDelta = radiusMeters / (METERS_PER_DEGREE_LAT * Math.cos((lat * Math.PI) / 180))
+  // cos(lat) -> 0 at the poles, which would blow lngDelta up to Infinity.
+  // Not a real scenario for Singapore coordinates, but clamp it so a bad
+  // input can't produce an unbounded query.
+  const cosLat = Math.max(Math.abs(Math.cos((lat * Math.PI) / 180)), 1e-6)
+  const lngDelta = radiusMeters / (METERS_PER_DEGREE_LAT * cosLat)
 
   return {
-    minLat: lat - latDelta,
-    maxLat: lat + latDelta,
+    minLat: Math.max(-90, lat - latDelta),
+    maxLat: Math.min(90, lat + latDelta),
     minLng: lng - lngDelta,
     maxLng: lng + lngDelta,
   }
