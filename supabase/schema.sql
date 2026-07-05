@@ -171,3 +171,42 @@ as $$
   where c.lat between min_lat and max_lat
     and c.lng between min_lng and max_lng;
 $$;
+
+-- Submit a sighting: insert the sighting, then conditionally update the
+-- cat's last_seen_at/status - one transaction instead of two REST calls.
+-- Called from POST /api/sightings after the API route has generated the
+-- CLIP embedding and looked up match_score via match_cat_embedding.
+--
+-- 'not_found' sightings don't update last_seen_at/status: the whole point
+-- of last_seen_at is to drive disappearance detection (missing after
+-- MISSING_THRESHOLD days with no sighting), and a "couldn't find this cat"
+-- report is evidence *for* that, not a fresh sighting - resetting the
+-- countdown on a not_found report would be backwards.
+create or replace function submit_sighting(
+  p_cat_id uuid,
+  p_photo_url text,
+  p_status_update text,
+  p_notes text,
+  p_embedding vector(512),
+  p_match_score float8
+)
+returns sightings
+language plpgsql
+as $$
+declare
+  new_sighting sightings;
+begin
+  insert into sightings (cat_id, photo_url, embedding, match_score, status_update, notes)
+  values (p_cat_id, p_photo_url, p_embedding, p_match_score, p_status_update, p_notes)
+  returning * into new_sighting;
+
+  if p_status_update <> 'not_found' then
+    update cats
+    set last_seen_at = now(),
+        status = case p_status_update when 'injured' then 'needs_attention' else 'healthy' end
+    where id = p_cat_id;
+  end if;
+
+  return new_sighting;
+end;
+$$;
