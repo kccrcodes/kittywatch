@@ -1,0 +1,92 @@
+-- CatWatch — initial schema
+-- Run once in the Supabase SQL Editor (or via `supabase db push` if you set
+-- up the CLI). Matches the data model in docs/SPEC.md.
+
+create extension if not exists vector;
+create extension if not exists pgcrypto; -- gen_random_uuid()
+
+-- Users
+-- Auth is deferred per SPEC.md (hardcoded demo user/device id for the
+-- hackathon) — this table exists so the schema is forward-compatible, but
+-- nothing enforces a real auth.users link yet.
+create table if not exists users (
+  id uuid primary key default gen_random_uuid(),
+  email text unique not null,
+  display_name text,
+  push_subscription jsonb,
+  created_at timestamptz default now()
+);
+
+-- Cats
+create table if not exists cats (
+  id uuid primary key default gen_random_uuid(),
+  name text,
+  breed text,
+  estimated_age text,
+  vaccinated boolean default false,
+  tnr boolean default false,
+  lat float8 not null,           -- fuzzed coordinates (~50m offset), see COORD_FUZZ in SPEC.md
+  lng float8 not null,
+  status text not null default 'healthy'
+    check (status in ('healthy', 'needs_attention', 'missing')),
+  last_seen_at timestamptz,
+  registered_by uuid references users(id),
+  created_at timestamptz default now()
+);
+
+create index if not exists cats_lat_lng_idx on cats (lat, lng);
+create index if not exists cats_status_idx on cats (status);
+
+-- Sightings (photo submissions)
+create table if not exists sightings (
+  id uuid primary key default gen_random_uuid(),
+  cat_id uuid not null references cats(id) on delete cascade,
+  submitted_by uuid references users(id),
+  photo_url text not null,
+  embedding vector(512),          -- CLIP embedding, see scripts/derisk-clip.mjs
+  match_score float8,              -- cosine similarity vs cat's known embeddings
+  status_update text
+    check (status_update in ('healthy', 'injured', 'not_found')),
+  notes text,
+  created_at timestamptz default now()
+);
+
+create index if not exists sightings_cat_id_idx on sightings (cat_id);
+-- IVFFlat index for cosine similarity search. Needs rows present before
+-- `create index` picks good list count — fine to add after seeding (Milestone 3).
+-- create index sightings_embedding_idx on sightings
+--   using ivfflat (embedding vector_cosine_ops) with (lists = 100);
+
+-- Alerts (disappearance events)
+create table if not exists alerts (
+  id uuid primary key default gen_random_uuid(),
+  cat_id uuid not null references cats(id) on delete cascade,
+  triggered_at timestamptz default now(),
+  resolved_at timestamptz,
+  resolved boolean default false
+);
+
+create index if not exists alerts_cat_id_idx on alerts (cat_id);
+
+-- Cat re-ID similarity match, per docs/SPEC.md.
+-- Returns the single best-matching prior sighting for a cat, by cosine
+-- similarity, above `threshold` (default REID_THRESHOLD = 0.70 in SPEC.md —
+-- see scripts/derisk-clip.mjs findings before trusting that number as-is).
+create or replace function match_cat_embedding(
+  cat_id uuid,
+  query_embedding vector(512),
+  threshold float8 default 0.70
+)
+returns table(sighting_id uuid, similarity float8)
+language sql
+stable
+as $$
+  select
+    id as sighting_id,
+    1 - (embedding <=> query_embedding) as similarity
+  from sightings
+  where sightings.cat_id = match_cat_embedding.cat_id
+    and embedding is not null
+  order by embedding <=> query_embedding
+  limit 1;
+$$;
