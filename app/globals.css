@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -172,6 +173,34 @@
     background: var(--pink-200);
     color: var(--text-main);
   }
+}
+
+/*
+ * Leaflet, CatWatch-themed (cat-map-panel / cat-map-leaflet): cream canvas,
+ * transparent divIcon wrappers, popup cards matching design.md §5 surfaces.
+ */
+.leaflet-container {
+  background: #f3eae0;
+  font-family: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+}
+.cw-map-divicon {
+  background: transparent;
+  border: none;
+}
+.cw-map-popup .leaflet-popup-content-wrapper {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-soft-c);
+  background: var(--bg-surface);
+  color: var(--text-main);
+  box-shadow: var(--shadow-soft);
+}
+.cw-map-popup .leaflet-popup-content {
+  margin: 10px 12px;
+  line-height: 1.4;
+}
+.cw-map-popup .leaflet-popup-tip {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-soft-c);
 }
 
 /* Themed scrollbar — pink pill thumb on a soft cream track */
