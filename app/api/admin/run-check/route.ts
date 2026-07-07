@@ -7,10 +7,11 @@ import { MISSING_THRESHOLD_DAYS } from "@/lib/config"
 // pg_cron (see supabase/schema.sql), but a video demo can't wait 7 days,
 // hence the configurable threshold_days here.
 //
-// No auth/rate limiting on this route - auth is broadly deferred for the
-// hackathon (see docs/SPEC.md), and this only flips cats to 'missing'
-// early, it doesn't destroy data. Worth a mention in the security writeup
-// as an accepted risk, same as the public Storage upload policy.
+// Gated by a shared-secret bearer token (ADMIN_RUN_CHECK_TOKEN) rather than
+// left open - this is a publicly reachable Vercel URL that can flip every
+// cat to 'missing' with threshold_days: 0, which could wreck a live demo
+// if anyone found the endpoint. Not full auth (still deferred per
+// docs/SPEC.md), just enough to stop anonymous abuse of this one route.
 const runCheckSchema = z.object({
   threshold_days: z.coerce.number().int().positive().optional().default(MISSING_THRESHOLD_DAYS),
 })
@@ -22,6 +23,15 @@ type FlippedCat = {
 }
 
 export async function POST(request: Request) {
+  const adminToken = process.env.ADMIN_RUN_CHECK_TOKEN
+  if (!adminToken) {
+    // Fail closed - an unset token should never mean "no auth required".
+    return NextResponse.json({ error: "ADMIN_RUN_CHECK_TOKEN is not configured" }, { status: 500 })
+  }
+  if (request.headers.get("authorization") !== `Bearer ${adminToken}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   const body = await request.json().catch(() => ({}))
   const parsed = runCheckSchema.safeParse(body ?? {})
   if (!parsed.success) {

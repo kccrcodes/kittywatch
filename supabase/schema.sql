@@ -256,12 +256,10 @@ $$;
 -- this file doesn't create duplicate scheduled jobs.
 create extension if not exists pg_cron;
 
-do $$
-begin
-  if exists (select 1 from cron.job where jobname = 'disappearance-check-daily') then
-    perform cron.unschedule('disappearance-check-daily');
-  end if;
-end $$;
+-- cron.unschedule(job_id bigint) is the original, version-stable signature
+-- (unlike the text-overload, which is newer and version-dependent) - delete
+-- by jobid looked up from cron.job rather than relying on it.
+select cron.unschedule(jobid) from cron.job where jobname = 'disappearance-check-daily';
 
 -- The 7 here is a literal, not lib/config.ts's MISSING_THRESHOLD_DAYS -
 -- cron.schedule needs a literal SQL command. Keep these in sync by hand if
