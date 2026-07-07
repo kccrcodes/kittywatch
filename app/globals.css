@@ -411,8 +411,56 @@ html {
   animation: cw-card-out-kf 0.45s ease-in forwards;
 }
 
+/* Bottom sheet slide-up (radix data-state drives open/closed) */
+@keyframes cw-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes cw-sheet-down {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes cw-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes cw-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.cw-sheet[data-state="open"] {
+  animation: cw-sheet-up 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.cw-sheet[data-state="closed"] {
+  animation: cw-sheet-down 0.25s ease-in;
+}
+.cw-sheet-overlay[data-state="open"] {
+  animation: cw-fade-in 0.25s ease-out;
+}
+.cw-sheet-overlay[data-state="closed"] {
+  animation: cw-fade-out 0.2s ease-in;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .cw-motion {
+  .cw-motion,
+  .cw-sheet,
+  .cw-sheet-overlay {
     animation: none !important;
   }
 }

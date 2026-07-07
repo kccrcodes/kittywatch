@@ -12,6 +12,7 @@ import { fromApiCat, fromMockCat, type MapCat } from "@/lib/map-cats";
 import { useCats } from "@/lib/use-cats";
 import { Button } from "@/components/ui/button";
 import { PawDoodle } from "@/components/catwatch/doodles";
+import { SubmitSightingSheet } from "@/components/catwatch/submit-sighting-sheet";
 
 /**
  * The map hero (design.md §6, issue #13): a Leaflet CRS.Simple map over the
@@ -57,6 +58,8 @@ export function CatMapPanel({
 }) {
   const [map, setMap] = useState<LeafletMap | null>(null);
   const [showDemo, setShowDemo] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetSession, setSheetSession] = useState(0);
   const demoCats = useMemo(() => cats.map(fromMockCat), [cats]);
   const { query, refetch } = useCats(live && !showDemo ? CAMPUS_CENTER : null);
 
@@ -210,14 +213,28 @@ export function CatMapPanel({
         </ul>
       </div>
 
-      {/* report FAB */}
+      {/* report FAB → sighting sheet (#15) */}
       <button
         type="button"
+        onClick={() => {
+          setSheetSession((n) => n + 1); // fresh key = clean form each open
+          setSheetOpen(true);
+        }}
         className="absolute bottom-4 right-4 z-[1000] flex items-center gap-2 rounded-full bg-pink-500 px-4 py-2.5 text-sm font-bold text-white shadow-(--shadow-lifted) transition-colors hover:bg-pink-600"
       >
         <Camera className="size-4" aria-hidden="true" />
         <span className="hidden sm:inline">Report a Sighting</span>
       </button>
+
+      <SubmitSightingSheet
+        key={sheetSession}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        cats={mapCats}
+        onSubmitted={() => {
+          if (usingLiveData) refetch();
+        }}
+      />
 
       <span className="absolute bottom-4 left-1/2 z-[1000] -translate-x-1/2 rounded-full bg-surface/80 px-2.5 py-1 text-[10px] font-medium text-cocoa-muted backdrop-blur-sm">
         {showDemo
