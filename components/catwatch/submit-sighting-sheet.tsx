@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Camera, Loader2, PawPrint, Sparkles } from "lucide-react";
+import { Camera, Loader2, PawPrint } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import {
@@ -14,6 +14,7 @@ import type { MapCat } from "@/lib/map-cats";
 import { Button } from "@/components/ui/button";
 import { BottomSheet } from "@/components/catwatch/bottom-sheet";
 import { CameraCaptureField } from "@/components/catwatch/camera-capture-field";
+import { ReIdReveal } from "@/components/catwatch/re-id-reveal";
 import { SightingStatusPicker } from "@/components/catwatch/sighting-status-picker";
 import { CatFaceDoodle } from "@/components/catwatch/doodles";
 
@@ -229,9 +230,10 @@ export function SubmitSightingSheet({
 }
 
 /**
- * Post-submit re-ID result. Phase-3 seam: the #19 reveal animation (ring
- * filling to the match score) replaces the inside of this component; the
- * three outcomes it must keep are match / flagged / score-unavailable.
+ * Post-submit re-ID result: the #19 ring reveal for a scored sighting, a
+ * quiet confirmation when CLIP was unavailable (match_score null). The
+ * actions stay visible throughout so the flow never dead-ends behind an
+ * animation.
  */
 function SightingResultView({
   result,
@@ -244,31 +246,14 @@ function SightingResultView({
   onDone: () => void;
   onLogAnother: () => void;
 }) {
-  const percent =
-    result.match_score !== null ? Math.round(result.match_score * 100) : null;
-
   return (
     <div className="space-y-4 py-2 text-center">
-      {percent !== null ? (
-        <>
-          <p className="text-xs font-semibold uppercase tracking-wide text-cocoa-muted">
-            Re-ID match
-          </p>
-          <p className="font-display text-5xl font-semibold text-cocoa">
-            {percent}%
-          </p>
-          {result.flagged ? (
-            <p className="mx-auto max-w-xs rounded-(--radius-md) bg-yellow-soft/70 px-3 py-2 text-xs font-semibold text-[#7a5a2e]">
-              Hmm, that photo doesn&apos;t confidently match {catName} — a
-              caretaker will double-check this one.
-            </p>
-          ) : (
-            <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-600">
-              <Sparkles className="size-4" aria-hidden="true" />
-              Looks like {catName}! Sighting logged.
-            </p>
-          )}
-        </>
+      {result.match_score !== null ? (
+        <ReIdReveal
+          score={result.match_score}
+          flagged={result.flagged}
+          catName={catName}
+        />
       ) : (
         <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-cocoa-body">
           <PawPrint className="size-4 text-pink-400" aria-hidden="true" />
