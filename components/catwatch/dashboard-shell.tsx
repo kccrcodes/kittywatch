@@ -23,7 +23,12 @@ export function DashboardShell({
         <div className="mx-auto flex h-16 w-full max-w-[1440px] items-center gap-3 px-4 md:px-6">
           <Link href="/dashboard" className="flex items-center gap-2.5">
             <span className="flex size-10 items-center justify-center rounded-full bg-pink-100">
-              <CatFaceDoodle tint="var(--pink-200)" className="size-7" />
+              {/* eslint-disable-next-line @next/next/no-img-element -- tiny pixel-art asset; keep 1:1 pixels */}
+              <img
+                src="/cat-pin.png"
+                alt=""
+                className="size-7 [image-rendering:pixelated]"
+              />
             </span>
             <span className="leading-tight">
               <span className="flex items-center gap-1 font-display text-lg font-semibold text-cocoa">
