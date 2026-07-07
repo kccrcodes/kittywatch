@@ -157,10 +157,10 @@ create table alerts (
 
 **This is the part you (designer) build against.** Each response is exactly the shape the screen receives. Don't change these without telling your partner.
 
-**Photo flow:** the client uploads the image to **Supabase Storage first**, gets a public `photo_url`, then calls the API with that URL. Endpoints never receive raw files.
+**Photo flow:** the client uploads the image to **Supabase Storage first**, gets a public `photo_url`, then calls the API with that URL. Endpoints never receive raw files, and reject any `photo_url` that isn't a Supabase Storage URL (SSRF guard — see `docs/security.md`).
 
 ### `GET /api/cats` — map pins
-Query: `lat`, `lng`, `radius` (metres). Returns cats in a bounding box.
+Query: `lat`, `lng` (required), `radius` (metres, optional, default 5000). Returns cats in a bounding box.
 ```json
 [
   { "id":"uuid", "name":"Mochi", "status":"healthy",
@@ -169,6 +169,7 @@ Query: `lat`, `lng`, `radius` (metres). Returns cats in a bounding box.
 ]
 ```
 > **Designer note:** everything a pin needs. `status` sets colour, `thumbnail_url` is the preview. Nothing heavier loads until a pin is tapped (then → bottom sheet).
+Errors: `400` if `lat`/`lng` missing or invalid.
 
 ### `GET /api/cats/[id]` — full profile
 ```json
@@ -179,20 +180,23 @@ Query: `lat`, `lng`, `radius` (metres). Returns cats in a bounding box.
   "sightings":[
     { "id":"uuid", "photo_url":"https://.../photo.jpg", "status_update":"healthy",
       "notes":"napping by block 412", "match_score":0.92,
-      "submitted_by_name":"Aisha", "created_at":"2026-07-01T09:30:00Z" }
+      "submitted_by_name":null, "created_at":"2026-07-01T09:30:00Z" }
   ]
 }
 ```
+`sightings` sorted newest-first. `submitted_by_name` is always `null` for now — real auth is deferred, see below.
+Errors: `400` invalid id · `404` not found.
 
 ### `POST /api/cats` — register a cat
 Request (all optional except coords + photo):
 ```json
 { "name":"Mochi", "breed":"Domestic Shorthair", "estimated_age":"~2 years",
   "vaccinated":false, "tnr":false, "lat":1.3521, "lng":103.8198,
-  "photo_url":"https://.../founding.jpg" }
+  "photo_url":"https://.../founding.jpg", "notes":"optional note for the founding sighting" }
 ```
-Response: the created cat, with **fuzzed** coords the map will show.
+Response: the created cat, with **fuzzed** coords the map will show. `201`.
 Server-side: fuzz coords → insert cat → generate founding CLIP embedding → store founding sighting with `match_score: 1.0`.
+Errors: `429` rate-limited (combined 10/hour budget shared with `/api/sightings`) · `400` validation or non-Storage `photo_url`.
 
 ### `POST /api/sightings` — submit a sighting
 Request:
@@ -200,15 +204,26 @@ Request:
 { "cat_id":"uuid", "photo_url":"https://.../new.jpg",
   "status_update":"healthy", "notes":"seen near the void deck" }
 ```
-Response:
+`status_update` must be `healthy`, `injured`, or `not_found`. Response:
 ```json
 { "id":"uuid", "cat_id":"uuid",
-  "match_score":0.89,        // or null if CLIP unavailable
+  "match_score":0.89,        // or null if CLIP unavailable, or no prior sighting to compare against
   "flagged":false,           // true when match_score < REID_THRESHOLD
   "status_update":"healthy", "created_at":"2026-07-01T09:30:00Z" }
 ```
-Server-side: rate-limit → generate embedding → pgvector match → insert sighting → update cat `last_seen_at` + `status`.
-Errors: `429` rate-limited · `400` validation · `404` unknown cat.
+Server-side: rate-limit → generate embedding → pgvector match → insert sighting → update cat `last_seen_at` + `status` (skipped for `not_found` — see `docs/architecture.md`).
+Errors: `429` rate-limited · `400` validation or non-Storage `photo_url` · `404` unknown cat.
+
+### `POST /api/admin/run-check` — manually trigger the disappearance check
+**Not for regular UI use** — demo/ops tool only, gated by `Authorization: Bearer <ADMIN_RUN_CHECK_TOKEN>`.
+```json
+{ "threshold_days": 7 }
+```
+Body optional, defaults to 7. Response: `{ "threshold_days":7, "flipped_to_missing":[...], "count":0 }`.
+Errors: `401` missing/wrong token · `500` if the token isn't configured server-side at all (fails closed).
+
+### `GET /api/health` — connectivity check
+No auth, no params. `{ "ok":true, "supabase":"connected" }` or `500` with an error message. Useful for confirming env vars are set correctly after any deploy.
 
 ### `match_cat_embedding` — Postgres RPC (backend-internal)
 `match_cat_embedding(cat_id, query_embedding, threshold)` → `{ sighting_id, similarity }`
