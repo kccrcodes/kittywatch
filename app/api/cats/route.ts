@@ -4,6 +4,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase"
 import { generateClipEmbedding, embeddingToPgVector } from "@/lib/clip"
 import { boundingBoxFromRadius, fuzzCoordinate } from "@/lib/geo"
 import { isSupabaseStorageUrl } from "@/lib/photo-url"
+import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit"
 
 // CLIP model load + inference on a cold start can take a while - give this
 // route more headroom than Vercel's default.
@@ -61,6 +62,11 @@ const registerCatSchema = z.object({
 })
 
 export async function POST(request: Request) {
+  const { success: withinRateLimit } = await checkRateLimit(getClientIdentifier(request))
+  if (!withinRateLimit) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
+  }
+
   const body = await request.json().catch(() => null)
   if (!body) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })

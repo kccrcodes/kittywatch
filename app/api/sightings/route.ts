@@ -4,15 +4,11 @@ import { getSupabaseAdminClient } from "@/lib/supabase"
 import { generateClipEmbedding, embeddingToPgVector } from "@/lib/clip"
 import { REID_THRESHOLD, SIGHTING_STATUS } from "@/lib/config"
 import { isSupabaseStorageUrl } from "@/lib/photo-url"
+import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit"
 
 // CLIP model load + inference on a cold start can take a while - give this
 // route more headroom than Vercel's default.
 export const maxDuration = 60
-
-// Rate limiting (Upstash, 10/user/hour) is deliberately not in this route -
-// tracked separately as Milestone 2 issue #23, since it needs its own
-// Upstash account setup and applies to every mutation endpoint, not just
-// this one.
 
 const sightingStatusValues = Object.values(SIGHTING_STATUS) as [string, ...string[]]
 
@@ -35,6 +31,11 @@ const submitSightingSchema = z.object({
 })
 
 export async function POST(request: Request) {
+  const { success: withinRateLimit } = await checkRateLimit(getClientIdentifier(request))
+  if (!withinRateLimit) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 })
+  }
+
   const body = await request.json().catch(() => null)
   if (!body) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
