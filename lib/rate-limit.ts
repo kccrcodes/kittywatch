@@ -30,9 +30,17 @@ export async function checkRateLimit(identifier: string): Promise<{ success: boo
     // Fail closed in production (an unconfigured limiter must not mean
     // unlimited writes - same philosophy as run-check's token gate), but
     // let local dev without Upstash creds keep working, loudly.
-    if (process.env.NODE_ENV === "production") return { success: false }
+    // RATE_LIMIT_OPTIONAL=true is a deliberate, documented override for
+    // deployments that don't have the Upstash creds yet (demo hosting);
+    // remove it the moment real creds are configured.
+    if (
+      process.env.NODE_ENV === "production" &&
+      process.env.RATE_LIMIT_OPTIONAL !== "true"
+    ) {
+      return { success: false }
+    }
     console.warn(
-      "[rate-limit] UPSTASH_REDIS_REST_URL/TOKEN not set - skipping rate limit in dev"
+      "[rate-limit] UPSTASH_REDIS_REST_URL/TOKEN not set - skipping rate limit"
     )
     return { success: true }
   }
