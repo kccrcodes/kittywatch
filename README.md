@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CatWatch
 
-## Getting Started
+> Every stray cat gets a digital heartbeat. If it flatlines, the neighbourhood knows.
 
-First, run the development server:
+A mobile-first PWA for finding and tracking community/stray cats. Register a cat on a map, log sightings with a photo, and get alerted when a cat hasn't been seen in a while. A CLIP-based re-identification model confirms each photo submission matches the right cat before its profile updates.
 
+Built for **#hackthekitty 2026**.
+
+## The three problems it solves
+
+1. Cat lovers without cats who want to find community cats to visit.
+2. Community cats that vanish from their usual spots and go uncared-for.
+3. Community cats in accidents/distress that no one notices in time.
+
+## Stack
+
+Next.js 16 (App Router, Turbopack) · Tailwind v4 · shadcn/ui · Leaflet.js · Supabase (Postgres + Storage + pgvector) · local CLIP (`@huggingface/transformers`) · Upstash Redis · Vercel · `pg_cron`
+
+Full breakdown: [docs/architecture.md](docs/architecture.md). Security measures: [docs/security.md](docs/security.md). Product spec: [docs/SPEC.md](docs/SPEC.md).
+
+## Running locally
+
+1. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+2. **Set up Supabase**
+   - Create a project at [supabase.com](https://supabase.com)
+   - In the SQL Editor, run `supabase/schema.sql`, then `supabase/policies.sql`
+   - Grab your Project URL + anon key + service role key from Project Settings → API
+
+3. **Set up Upstash** (rate limiting)
+   - Create a Redis database at [upstash.com](https://upstash.com)
+   - Grab the REST URL + token
+
+4. **Configure environment variables**
+   ```bash
+   cp .env.example .env.local
+   ```
+   Fill in the Supabase and Upstash values above, plus a random string for `ADMIN_RUN_CHECK_TOKEN` (gates the manual disappearance-check trigger).
+
+5. **Run the dev server**
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000). Visit `/api/health` to confirm the Supabase connection is working.
+
+## De-risking CLIP
+
+`scripts/derisk-clip.mjs` confirms CLIP embeddings actually discriminate same-cat vs. different-cat photos before anything downstream depends on it. Drop 3 test photos (2 of the same cat, 1 of a different cat) into `scripts/clip-test-photos/` and run:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+node scripts/derisk-clip.mjs
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Project docs
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Doc | What's in it |
+|---|---|
+| [docs/SPEC.md](docs/SPEC.md) | Product spec, data model, API contract, feature list |
+| [docs/architecture.md](docs/architecture.md) | Current architecture, what shipped vs. what was cut and why |
+| [docs/security.md](docs/security.md) | Security measures + Aikido scan reference |
+| [docs/design.md](docs/design.md) | Visual design system, tokens, component specs |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Milestone-by-milestone build plan |
+| [docs/INITIAL_ISSUES_MILESTONES.md](docs/INITIAL_ISSUES_MILESTONES.md) | Issue/milestone breakdown, reconciled against the original architecture doc |
