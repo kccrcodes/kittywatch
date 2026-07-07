@@ -7,8 +7,8 @@ import {
   mockStats,
   mockZones,
 } from "@/lib/mock-data";
-import { AlertsPanel } from "@/components/catwatch/alerts-panel";
 import { CatDirectory } from "@/components/catwatch/cat-directory";
+import { LiveAlertsPanel } from "@/components/catwatch/live-alerts-panel";
 import { CatMapPanel } from "@/components/catwatch/cat-map-panel";
 import { LivePhotoSightingCard } from "@/components/catwatch/live-photo-sighting-card";
 import { Panel } from "@/components/catwatch/panel";
@@ -37,7 +37,7 @@ export function DashboardHome() {
         />
         <div className="space-y-5">
           <CatDirectory cats={mockCats} zones={mockZones} />
-          <AlertsPanel alerts={mockAlerts} />
+          <LiveAlertsPanel fallback={mockAlerts} />
         </div>
       </div>
 
