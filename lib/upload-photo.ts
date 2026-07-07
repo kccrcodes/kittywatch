@@ -8,7 +8,11 @@ import { getSupabaseBrowserClient } from "@/lib/supabase";
  */
 export async function uploadCatPhoto(file: File): Promise<string> {
   const supabase = getSupabaseBrowserClient();
-  const path = `${crypto.randomUUID()}-${file.name}`;
+  // Sanitise the client-controlled filename before it becomes part of the
+  // Storage object key (Aikido: path traversal) - keep the tail so the
+  // extension survives.
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-64);
+  const path = `${crypto.randomUUID()}-${safeName}`;
   const { error } = await supabase.storage.from("cat-photos").upload(path, file, {
     contentType: file.type || "image/jpeg",
   });

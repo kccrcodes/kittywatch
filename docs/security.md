@@ -40,4 +40,5 @@ Real user authentication (Supabase Auth/OAuth) is deferred in favor of a hardcod
 
 ## Aikido scan
 
-*Pending — to be run against the final `main` branch and linked here before submission.*
+Scanned with [Aikido Security](https://www.aikido.dev) (report: `docs/aikido-report.pdf`): **0 critical**; the one high (client-controlled filename in the Storage upload key — path traversal) and a flagged SSRF in the CLIP fetcher were fixed same-day: filenames are now sanitised in `lib/upload-photo.ts`, and the Supabase-Storage-URL guard is enforced *inside* `generateClipEmbedding` itself, not only at the API boundary.
+Remaining mediums are triaged, not ignored: a prototype-pollution CVE in a `zod@3` copy that ships only inside the `shadcn` scaffolding CLI (dev tooling — never part of the runtime bundle), and GitHub org IP allow-listing, which requires GitHub Enterprise Cloud.

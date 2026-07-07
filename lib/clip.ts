@@ -1,5 +1,7 @@
 import { pipeline, RawImage, type ImageFeatureExtractionPipeline } from "@huggingface/transformers"
 
+import { isSupabaseStorageUrl } from "@/lib/photo-url"
+
 // Local CLIP, not HF's hosted Inference API - that endpoint is dead/doesn't
 // support raw image embeddings for this model. See scripts/derisk-clip.mjs.
 let extractorPromise: Promise<ImageFeatureExtractionPipeline> | null = null
@@ -12,6 +14,12 @@ function getExtractor() {
 }
 
 export async function generateClipEmbedding(photoUrl: string): Promise<number[]> {
+  // Defense in depth (Aikido: SSRF): the API routes validate photo_url at
+  // the boundary, but the guard travels with the dangerous fetch too so no
+  // future caller can reach internal/metadata URLs through this function.
+  if (!isSupabaseStorageUrl(photoUrl)) {
+    throw new Error("Refusing to fetch a non-Supabase-Storage URL")
+  }
   const response = await fetch(photoUrl)
   if (!response.ok) {
     throw new Error(`Failed to fetch photo (${response.status}): ${photoUrl}`)
