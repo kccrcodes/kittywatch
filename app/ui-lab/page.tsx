@@ -13,7 +13,9 @@ import { AlertsPanel } from "@/components/catwatch/alerts-panel";
 import { CatCard } from "@/components/catwatch/cat-card";
 import { CatDirectory } from "@/components/catwatch/cat-directory";
 import { CatMapPanel } from "@/components/catwatch/cat-map-panel";
+import { CatProfileSheetDemo } from "@/components/catwatch/cat-profile-sheet-demo";
 import { CatWatchLoadingDemo } from "@/components/catwatch/cat-watch-loading-demo";
+import { HeartbeatLine } from "@/components/catwatch/heartbeat-line";
 import { ReIdRevealDemo } from "@/components/catwatch/re-id-reveal-demo";
 import { DashboardShell } from "@/components/catwatch/dashboard-shell";
 import {
@@ -145,6 +147,27 @@ export default function UiLabPage() {
         note="design.md §7's most demo-able moment: the ring fills to the CLIP match score after a sighting submit. Tick on the ring = REID_THRESHOLD (0.70); below it the sighting is flagged."
       >
         <ReIdRevealDemo />
+      </LabSection>
+
+      <LabSection
+        title="HeartbeatLine"
+        note="The pitch, visualised: a steady ECG for a cat that's being seen, slower for needs-attention, flat for missing. Shape carries the meaning — the flatline reads even with motion off."
+      >
+        <div className="grid max-w-md gap-3">
+          {(["healthy", "needs_attention", "missing"] as const).map((s) => (
+            <div key={s} className="flex items-center gap-3 rounded-(--radius-md) bg-cream-soft px-4 py-2">
+              <span className="w-32 shrink-0 text-xs font-semibold text-cocoa-muted">{s}</span>
+              <HeartbeatLine status={s} />
+            </div>
+          ))}
+        </div>
+      </LabSection>
+
+      <LabSection
+        title="CatProfileSheet"
+        note="Pin tap → bottom sheet (SPEC screen flow): heartbeat header, gallery, sighting history from GET /api/cats/[id]. The missing variant flatlines, counts the days, and turns the CTA into 'I've seen them!'."
+      >
+        <CatProfileSheetDemo />
       </LabSection>
 
       <LabSection title="StatusBadge" note="Functional status colours, always paired with an icon shape.">

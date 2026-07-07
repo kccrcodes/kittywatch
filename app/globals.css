@@ -411,6 +411,19 @@ html {
   animation: cw-card-out-kf 0.45s ease-in forwards;
 }
 
+/* Digital-heartbeat ECG scroll (heartbeat-line.tsx); one 120px beat cell */
+@keyframes cw-heartbeat-kf {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-120px);
+  }
+}
+.cw-heartbeat {
+  animation: cw-heartbeat-kf 1.6s linear infinite;
+}
+
 /* Bottom sheet slide-up (radix data-state drives open/closed) */
 @keyframes cw-sheet-up {
   from {

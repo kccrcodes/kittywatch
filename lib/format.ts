@@ -1,3 +1,11 @@
+/** Whole days since an ISO stamp (0 for today); null if absent/invalid. */
+export function daysSince(iso: string | null): number | null {
+  if (!iso) return null;
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return null;
+  return Math.max(0, Math.floor((Date.now() - then) / 86_400_000));
+}
+
 /** "10m ago" / "2h ago" / "3 days ago" labels for `last_seen_at` stamps. */
 export function timeAgo(iso: string | null): string | null {
   if (!iso) return null;
