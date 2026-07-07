@@ -2,12 +2,17 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    // Mock cat photos only (lib/mock-data.ts). Swap for the Supabase
-    // Storage hostname when real uploads land.
     remotePatterns: [
+      // Mock cat photos (lib/mock-data.ts)
       {
         protocol: "https",
         hostname: "placecats.com",
+      },
+      // Real sighting photos in Supabase Storage
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/object/public/**",
       },
     ],
   },
