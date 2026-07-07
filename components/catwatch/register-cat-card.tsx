@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Loader2, MapPin, PawPrint, Sparkles, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { CAMPUS_CENTER } from "@/lib/map-geometry";
 import { uploadCatPhoto } from "@/lib/upload-photo";
 import { LeafDoodle } from "@/components/catwatch/doodles";
 import { Panel } from "@/components/catwatch/panel";
@@ -45,7 +46,9 @@ type RegisteredCat = {
 export function RegisterCatCard({ className }: { className?: string }) {
   const [file, setFile] = useState<File | null>(null);
   const [coords, setCoords] = useState<Coords | null>(null);
-  const [locationStatus, setLocationStatus] = useState<"locating" | "ready" | "error">("locating");
+  const [locationStatus, setLocationStatus] = useState<
+    "locating" | "ready" | "fallback"
+  >("locating");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [registered, setRegistered] = useState<RegisteredCat | null>(null);
@@ -61,7 +64,13 @@ export function RegisterCatCard({ className }: { className?: string }) {
         setLocationStatus("ready");
       })
       .catch(() => {
-        if (!cancelled) setLocationStatus("error");
+        // No GPS / permission denied (desktops especially): fall back to
+        // the campus centre so registration never dead-ends - coords are
+        // fuzzed ±50m server-side anyway.
+        if (!cancelled) {
+          setCoords(CAMPUS_CENTER);
+          setLocationStatus("fallback");
+        }
       });
     return () => {
       cancelled = true;
@@ -172,9 +181,9 @@ export function RegisterCatCard({ className }: { className?: string }) {
           {locationStatus === "ready" && (
             <span className="font-semibold text-green-600">Location captured</span>
           )}
-          {locationStatus === "error" && (
-            <span className="flex items-center gap-2 text-[#8f3a34]">
-              Couldn&apos;t get your location.
+          {locationStatus === "fallback" && (
+            <span className="flex flex-wrap items-center gap-2 text-[#7a5a2e]">
+              Using the campus centre — couldn&apos;t get your exact spot.
               <button type="button" onClick={requestLocation} className="font-bold underline underline-offset-2">
                 Retry
               </button>
