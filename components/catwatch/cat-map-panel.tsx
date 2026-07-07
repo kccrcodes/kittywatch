@@ -11,6 +11,7 @@ import { CAMPUS_CENTER, MAP_IMAGE_BOUNDS } from "@/lib/map-geometry";
 import { fromApiCat, fromMockCat, type MapCat } from "@/lib/map-cats";
 import { useCats } from "@/lib/use-cats";
 import { Button } from "@/components/ui/button";
+import { CatProfileSheet } from "@/components/catwatch/cat-profile-sheet";
 import { PawDoodle } from "@/components/catwatch/doodles";
 import { SubmitSightingSheet } from "@/components/catwatch/submit-sighting-sheet";
 
@@ -60,8 +61,17 @@ export function CatMapPanel({
   const [showDemo, setShowDemo] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetSession, setSheetSession] = useState(0);
+  const [sheetPreselect, setSheetPreselect] = useState<string | undefined>();
+  const [profileCat, setProfileCat] = useState<MapCat | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
   const demoCats = useMemo(() => cats.map(fromMockCat), [cats]);
   const { query, refetch } = useCats(live && !showDemo ? CAMPUS_CENTER : null);
+
+  function openSubmitSheet(preselectCatId?: string) {
+    setSheetPreselect(preselectCatId);
+    setSheetSession((n) => n + 1); // fresh key = clean form each open
+    setSheetOpen(true);
+  }
 
   const usingLiveData = live && !showDemo;
   const mapCats: MapCat[] = !usingLiveData
@@ -79,7 +89,14 @@ export function CatMapPanel({
       )}
     >
       <div className="absolute inset-0">
-        <CatMapLeaflet cats={mapCats} onMapReady={setMap} />
+        <CatMapLeaflet
+          cats={mapCats}
+          onMapReady={setMap}
+          onCatClick={(cat) => {
+            setProfileCat(cat);
+            setProfileOpen(true);
+          }}
+        />
       </div>
 
       {/* live-data states (design.md: every state designed) */}
@@ -216,10 +233,7 @@ export function CatMapPanel({
       {/* report FAB → sighting sheet (#15) */}
       <button
         type="button"
-        onClick={() => {
-          setSheetSession((n) => n + 1); // fresh key = clean form each open
-          setSheetOpen(true);
-        }}
+        onClick={() => openSubmitSheet()}
         className="absolute bottom-4 right-4 z-[1000] flex items-center gap-2 rounded-full bg-pink-500 px-4 py-2.5 text-sm font-bold text-white shadow-(--shadow-lifted) transition-colors hover:bg-pink-600"
       >
         <Camera className="size-4" aria-hidden="true" />
@@ -231,8 +245,21 @@ export function CatMapPanel({
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         cats={mapCats}
+        preselectedCatId={sheetPreselect}
         onSubmitted={() => {
           if (usingLiveData) refetch();
+        }}
+      />
+
+      {/* pin tap → profile sheet (#14/#21); keyed so each cat starts fresh */}
+      <CatProfileSheet
+        key={profileCat?.id ?? "no-cat"}
+        cat={profileCat}
+        open={profileOpen}
+        onOpenChange={setProfileOpen}
+        onReportSighting={(cat) => {
+          setProfileOpen(false);
+          openSubmitSheet(cat.id);
         }}
       />
 

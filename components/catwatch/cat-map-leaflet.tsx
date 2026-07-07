@@ -18,9 +18,7 @@ import {
   MAP_IMAGE_URL,
   projectToImage,
 } from "@/lib/map-geometry";
-import { CatFaceDoodle } from "@/components/catwatch/doodles";
 import { MapMarker } from "@/components/catwatch/map-marker";
-import { StatusBadge } from "@/components/catwatch/status-badge";
 
 /**
  * The interactive illustrated map (issue #13, phase 1): Leaflet in
@@ -85,9 +83,12 @@ function DevClickLogger() {
 export function CatMapLeaflet({
   cats,
   onMapReady,
+  onCatClick,
 }: {
   cats: MapCat[];
   onMapReady?: (map: LeafletMap) => void;
+  /** Pin tap → profile bottom sheet (SPEC screen flow), not a popup. */
+  onCatClick?: (cat: MapCat) => void;
 }) {
   const catMarkers = useMemo(
     () =>
@@ -171,35 +172,8 @@ export function CatMapLeaflet({
           position={position}
           icon={icon}
           zIndexOffset={cat.status === "missing" ? 500 : 0}
-        >
-          <Popup className="cw-map-popup" offset={[0, -48]} closeButton={false}>
-            <div className="flex items-center gap-3">
-              {cat.photoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element -- small avatar in a Leaflet popup
-                <img
-                  src={cat.photoUrl}
-                  alt={cat.name}
-                  className="size-12 shrink-0 rounded-(--radius-sm) border border-border-soft object-cover"
-                />
-              ) : (
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-(--radius-sm) border border-border-soft bg-cream">
-                  <CatFaceDoodle tint={cat.tint} className="size-9" />
-                </span>
-              )}
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-cocoa">{cat.name}</p>
-                  <StatusBadge status={cat.status} />
-                </div>
-                <p className="text-xs font-medium text-cocoa-muted">
-                  {[cat.locationLabel, `last seen ${cat.lastSeenLabel}`]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-              </div>
-            </div>
-          </Popup>
-        </Marker>
+          eventHandlers={{ click: () => onCatClick?.(cat) }}
+        />
       ))}
     </MapContainer>
   );
