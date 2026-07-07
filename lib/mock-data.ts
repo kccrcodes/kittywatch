@@ -14,9 +14,15 @@ export interface MockCat {
   sex: "female" | "male";
   breed: string;
   zone: string;
-  /** Real-ish NUS coordinates; the placeholder map projects them to x/y. */
+  /** Real-ish NUS coordinates; projected onto the illustrated map. */
   lat: number;
   lng: number;
+  /**
+   * Optional CRS.Simple override `[y, x]` on the 800×600 illustrated map
+   * (y up from bottom-left). In dev, click the map to log a coordinate,
+   * then paste it here to calibrate a marker (see lib/map-geometry.ts).
+   */
+  mapPosition?: [number, number];
   status: CatStatus;
   lastSeen: string;
   personality: CatPersonality;
