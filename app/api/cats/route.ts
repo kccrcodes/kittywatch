@@ -59,6 +59,7 @@ const registerCatSchema = z.object({
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
   photo_url: z.string().url(),
+  notes: z.string().trim().min(1).optional(),
 })
 
 export async function POST(request: Request) {
@@ -104,6 +105,7 @@ export async function POST(request: Request) {
       p_lng: fuzzed.lng,
       p_photo_url: input.photo_url,
       p_embedding: embedding ? embeddingToPgVector(embedding) : null,
+      p_notes: input.notes ?? null,
     })
     .single()
 

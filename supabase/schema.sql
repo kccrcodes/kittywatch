@@ -105,7 +105,8 @@ create or replace function register_cat(
   p_lat float8,
   p_lng float8,
   p_photo_url text,
-  p_embedding vector(512)
+  p_embedding vector(512),
+  p_notes text default null
 )
 returns cats
 language plpgsql
@@ -124,7 +125,7 @@ begin
     p_embedding,
     case when p_embedding is null then null else 1.0 end,
     'healthy',
-    'Founding photo'
+    coalesce(p_notes, 'Founding photo')
   );
 
   return new_cat;

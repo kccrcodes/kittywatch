@@ -1,28 +1,117 @@
 "use client";
 
-import { useState } from "react";
-import { PawPrint, Sparkles, Upload } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Loader2, MapPin, PawPrint, Sparkles, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { mockZones } from "@/lib/mock-data";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { LeafDoodle } from "@/components/catwatch/doodles";
 import { Panel } from "@/components/catwatch/panel";
 
 const inputStyles =
   "w-full rounded-[14px] border border-border-soft bg-cream px-3.5 py-2.5 text-sm text-cocoa outline-none placeholder:text-cocoa-muted focus:border-pink-400 focus:ring-3 focus:ring-pink-200/60";
 
+type Coords = { lat: number; lng: number };
+
+type RegisteredCat = {
+  id: string;
+  name: string | null;
+  status: string;
+  lat: number;
+  lng: number;
+};
+
 /**
- * Register-a-cat form, visual only for Milestone 1 — submit shows a demo
- * confirmation instead of hitting POST /api/cats.
+ * Register-a-cat form, wired to POST /api/cats (#16). Location comes from
+ * the browser's Geolocation API rather than a manual pin-drop or zone
+ * picker - matches the real mobile use case ("I found a cat right here")
+ * and doesn't depend on the map (#13), which hasn't been built yet.
  */
 export function RegisterCatCard({ className }: { className?: string }) {
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [registered, setRegistered] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [coords, setCoords] = useState<Coords | null>(null);
+  const [locationStatus, setLocationStatus] = useState<"locating" | "ready" | "error">("locating");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [registered, setRegistered] = useState<RegisteredCat | null>(null);
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function requestLocation() {
+    setLocationStatus("locating");
+    if (!navigator.geolocation) {
+      setLocationStatus("error");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+        setLocationStatus("ready");
+      },
+      () => setLocationStatus("error"),
+      { enableHighAccuracy: true, timeout: 10_000 }
+    );
+  }
+
+  useEffect(() => {
+    requestLocation();
+  }, []);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const name = new FormData(e.currentTarget).get("cat-name");
-    setRegistered(typeof name === "string" && name.trim() ? name.trim() : "New kitty");
+    setError(null);
+
+    if (!file) {
+      setError("Add a photo before registering.");
+      return;
+    }
+    if (!coords) {
+      setError("Waiting for your location - try again in a moment.");
+      return;
+    }
+
+    // Capture the form element now - React's synthetic event nulls out
+    // currentTarget once the handler yields (after the first await), so
+    // reading it later throws "Cannot read properties of null".
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const name = formData.get("cat-name");
+    const notes = formData.get("cat-notes");
+
+    setSubmitting(true);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const path = `${crypto.randomUUID()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage.from("cat-photos").upload(path, file, {
+        contentType: file.type || "image/jpeg",
+      });
+      if (uploadError) throw new Error(uploadError.message);
+
+      const { data: publicUrlData } = supabase.storage.from("cat-photos").getPublicUrl(path);
+
+      const res = await fetch("/api/cats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: typeof name === "string" && name.trim() ? name.trim() : undefined,
+          notes: typeof notes === "string" && notes.trim() ? notes.trim() : undefined,
+          lat: coords.lat,
+          lng: coords.lng,
+          photo_url: publicUrlData.publicUrl,
+        }),
+      });
+
+      const body = await res.json();
+      if (!res.ok) {
+        throw new Error(typeof body.error === "string" ? body.error : "Failed to register cat.");
+      }
+
+      setRegistered(body as RegisteredCat);
+      setFile(null);
+      form.reset();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -38,14 +127,14 @@ export function RegisterCatCard({ className }: { className?: string }) {
             <Upload className="size-5" aria-hidden="true" />
           </span>
           <span className="text-sm font-semibold text-cocoa">
-            {fileName ?? "Upload a clear photo"}
+            {file?.name ?? "Upload a clear photo"}
           </span>
           <span className="text-xs text-cocoa-muted">PNG, JPG up to 5MB</span>
           <input
             type="file"
             accept="image/*"
             className="sr-only"
-            onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />
         </label>
 
@@ -61,20 +150,24 @@ export function RegisterCatCard({ className }: { className?: string }) {
           />
         </div>
 
-        <div>
-          <label htmlFor="cat-zone" className="mb-1.5 block text-xs font-bold text-cocoa-body">
-            Location Spotted
-          </label>
-          <select id="cat-zone" name="cat-zone" className={inputStyles} defaultValue="">
-            <option value="" disabled>
-              Select a campus zone
-            </option>
-            {mockZones.map((zone) => (
-              <option key={zone.name} value={zone.name}>
-                {zone.name}
-              </option>
-            ))}
-          </select>
+        <div className="flex items-center gap-2 rounded-[14px] border border-border-soft bg-cream px-3.5 py-2.5 text-xs">
+          <MapPin className="size-4 shrink-0 text-cocoa-muted" aria-hidden="true" />
+          {locationStatus === "locating" && (
+            <span className="flex items-center gap-1.5 text-cocoa-muted">
+              <Loader2 className="size-3 animate-spin" aria-hidden="true" /> Getting your location…
+            </span>
+          )}
+          {locationStatus === "ready" && (
+            <span className="font-semibold text-green-600">Location captured</span>
+          )}
+          {locationStatus === "error" && (
+            <span className="flex items-center gap-2 text-[#8f3a34]">
+              Couldn&apos;t get your location.
+              <button type="button" onClick={requestLocation} className="font-bold underline underline-offset-2">
+                Retry
+              </button>
+            </span>
+          )}
         </div>
 
         <div>
@@ -93,11 +186,22 @@ export function RegisterCatCard({ className }: { className?: string }) {
         <Button
           type="submit"
           size="lg"
-          className="w-full rounded-full bg-pink-500 font-bold text-white hover:bg-pink-600"
+          disabled={submitting}
+          className="w-full rounded-full bg-pink-500 font-bold text-white hover:bg-pink-600 disabled:opacity-60"
         >
-          Register Cat
-          <PawPrint className="size-4" aria-hidden="true" />
+          {submitting ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <PawPrint className="size-4" aria-hidden="true" />
+          )}
+          {submitting ? "Registering…" : "Register Cat"}
         </Button>
+
+        {error ? (
+          <p role="alert" className="rounded-full bg-red-soft px-3 py-2 text-center text-xs font-semibold text-[#8f3a34]">
+            {error}
+          </p>
+        ) : null}
 
         {registered ? (
           <p
@@ -105,7 +209,7 @@ export function RegisterCatCard({ className }: { className?: string }) {
             className="flex items-center justify-center gap-1.5 rounded-full bg-green-100 px-3 py-2 text-xs font-semibold text-green-600"
           >
             <Sparkles className="size-3.5" aria-hidden="true" />
-            {registered} registered! (demo only — no data saved)
+            {registered.name ?? "New kitty"} registered at {registered.lat.toFixed(4)}, {registered.lng.toFixed(4)}!
           </p>
         ) : null}
       </form>
