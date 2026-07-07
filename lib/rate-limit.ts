@@ -4,11 +4,16 @@ import { RATE_LIMIT_PER_HOUR } from "@/lib/config"
 
 let ratelimit: Ratelimit | null = null
 
-function getRatelimit(): Ratelimit {
+function getRatelimit(): Ratelimit | null {
+  // Without creds the Redis client throws on first use, 500-ing every
+  // write endpoint - handle "unconfigured" explicitly instead.
+  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    return null
+  }
   if (!ratelimit) {
     const redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
     })
     ratelimit = new Ratelimit({
       redis,
@@ -19,8 +24,19 @@ function getRatelimit(): Ratelimit {
   return ratelimit
 }
 
-export async function checkRateLimit(identifier: string) {
-  return getRatelimit().limit(identifier)
+export async function checkRateLimit(identifier: string): Promise<{ success: boolean }> {
+  const limiter = getRatelimit()
+  if (!limiter) {
+    // Fail closed in production (an unconfigured limiter must not mean
+    // unlimited writes - same philosophy as run-check's token gate), but
+    // let local dev without Upstash creds keep working, loudly.
+    if (process.env.NODE_ENV === "production") return { success: false }
+    console.warn(
+      "[rate-limit] UPSTASH_REDIS_REST_URL/TOKEN not set - skipping rate limit in dev"
+    )
+    return { success: true }
+  }
+  return limiter.limit(identifier)
 }
 
 /**
