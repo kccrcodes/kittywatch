@@ -233,7 +233,7 @@ export default function UiLabPage() {
 
       <LabSection
         title="CatMapPanel"
-        note="Styled placeholder surface; swaps for Leaflet/MapLibre without touching callers."
+        note="Leaflet CRS.Simple over the illustrated campus PNG. Demo pins here; the dashboard passes `live` and fetches GET /api/cats with loading/empty/error states."
       >
         <CatMapPanel cats={mockCats} zones={mockZones} className="min-h-[480px]" />
       </LabSection>

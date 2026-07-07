@@ -32,6 +32,7 @@ export function DashboardHome() {
         <CatMapPanel
           cats={mockCats}
           zones={mockZones}
+          live
           className="min-h-[420px] lg:col-span-2 lg:min-h-[600px]"
         />
         <div className="space-y-5">

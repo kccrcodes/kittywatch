@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Loader2, MapPin, PawPrint, Sparkles, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { uploadCatPhoto } from "@/lib/upload-photo";
 import { LeafDoodle } from "@/components/catwatch/doodles";
 import { Panel } from "@/components/catwatch/panel";
 
@@ -12,6 +12,21 @@ const inputStyles =
   "w-full rounded-[14px] border border-border-soft bg-cream px-3.5 py-2.5 text-sm text-cocoa outline-none placeholder:text-cocoa-muted focus:border-pink-400 focus:ring-3 focus:ring-pink-200/60";
 
 type Coords = { lat: number; lng: number };
+
+function getCurrentPosition(): Promise<Coords> {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Geolocation unsupported"));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) =>
+        resolve({ lat: position.coords.latitude, lng: position.coords.longitude }),
+      () => reject(new Error("Geolocation denied or timed out")),
+      { enableHighAccuracy: true, timeout: 10_000 }
+    );
+  });
+}
 
 type RegisteredCat = {
   id: string;
@@ -35,25 +50,29 @@ export function RegisterCatCard({ className }: { className?: string }) {
   const [error, setError] = useState<string | null>(null);
   const [registered, setRegistered] = useState<RegisteredCat | null>(null);
 
-  function requestLocation() {
-    setLocationStatus("locating");
-    if (!navigator.geolocation) {
-      setLocationStatus("error");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
-        setLocationStatus("ready");
-      },
-      () => setLocationStatus("error"),
-      { enableHighAccuracy: true, timeout: 10_000 }
-    );
-  }
+  const [locationAttempt, setLocationAttempt] = useState(0);
 
   useEffect(() => {
-    requestLocation();
-  }, []);
+    let cancelled = false;
+    getCurrentPosition()
+      .then((position) => {
+        if (cancelled) return;
+        setCoords(position);
+        setLocationStatus("ready");
+      })
+      .catch(() => {
+        if (!cancelled) setLocationStatus("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [locationAttempt]);
+
+  // Retry button handler — sync setState is fine outside effects.
+  function requestLocation() {
+    setLocationStatus("locating");
+    setLocationAttempt((n) => n + 1);
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -78,14 +97,7 @@ export function RegisterCatCard({ className }: { className?: string }) {
 
     setSubmitting(true);
     try {
-      const supabase = getSupabaseBrowserClient();
-      const path = `${crypto.randomUUID()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage.from("cat-photos").upload(path, file, {
-        contentType: file.type || "image/jpeg",
-      });
-      if (uploadError) throw new Error(uploadError.message);
-
-      const { data: publicUrlData } = supabase.storage.from("cat-photos").getPublicUrl(path);
+      const photoUrl = await uploadCatPhoto(file);
 
       const res = await fetch("/api/cats", {
         method: "POST",
@@ -95,7 +107,7 @@ export function RegisterCatCard({ className }: { className?: string }) {
           notes: typeof notes === "string" && notes.trim() ? notes.trim() : undefined,
           lat: coords.lat,
           lng: coords.lng,
-          photo_url: publicUrlData.publicUrl,
+          photo_url: photoUrl,
         }),
       });
 
