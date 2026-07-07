@@ -27,6 +27,15 @@ const GEO_BOUNDS = {
 };
 
 /**
+ * Centre of the schematic campus — the default query point for
+ * GET /api/cats until real geolocation centring lands with the GPS map.
+ */
+export const CAMPUS_CENTER = {
+  lat: (GEO_BOUNDS.north + GEO_BOUNDS.south) / 2,
+  lng: (GEO_BOUNDS.west + GEO_BOUNDS.east) / 2,
+};
+
+/**
  * Projects a mock lat/lng onto the illustrated image, replicating the old
  * placeholder's percentage projection (6–94% clamp included) so markers
  * land exactly where the previous design put them. Returns `[y, x]` in

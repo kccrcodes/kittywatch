@@ -12,12 +12,13 @@ import {
   useMapEvents,
 } from "react-leaflet";
 
-import type { MockCat } from "@/lib/mock-data";
+import type { MapCat } from "@/lib/map-cats";
 import {
   MAP_IMAGE_BOUNDS,
   MAP_IMAGE_URL,
   projectToImage,
 } from "@/lib/map-geometry";
+import { CatFaceDoodle } from "@/components/catwatch/doodles";
 import { MapMarker } from "@/components/catwatch/map-marker";
 import { StatusBadge } from "@/components/catwatch/status-badge";
 
@@ -85,7 +86,7 @@ export function CatMapLeaflet({
   cats,
   onMapReady,
 }: {
-  cats: MockCat[];
+  cats: MapCat[];
   onMapReady?: (map: LeafletMap) => void;
 }) {
   const catMarkers = useMemo(
@@ -173,19 +174,27 @@ export function CatMapLeaflet({
         >
           <Popup className="cw-map-popup" offset={[0, -48]} closeButton={false}>
             <div className="flex items-center gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element -- small mock avatar in a Leaflet popup */}
-              <img
-                src={cat.photoUrl}
-                alt={cat.name}
-                className="size-12 shrink-0 rounded-(--radius-sm) border border-border-soft object-cover"
-              />
+              {cat.photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- small avatar in a Leaflet popup
+                <img
+                  src={cat.photoUrl}
+                  alt={cat.name}
+                  className="size-12 shrink-0 rounded-(--radius-sm) border border-border-soft object-cover"
+                />
+              ) : (
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-(--radius-sm) border border-border-soft bg-cream">
+                  <CatFaceDoodle tint={cat.tint} className="size-9" />
+                </span>
+              )}
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-bold text-cocoa">{cat.name}</p>
                   <StatusBadge status={cat.status} />
                 </div>
                 <p className="text-xs font-medium text-cocoa-muted">
-                  {cat.zone} · last seen {cat.lastSeen}
+                  {[cat.locationLabel, `last seen ${cat.lastSeenLabel}`]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
               </div>
             </div>
