@@ -46,5 +46,6 @@ next-env.d.ts
 /scripts/clip-test-photos/
 
 
-/public/cat-parts
+# hand-drawn reference art (large PNGs). NOTE: public/cat-parts must stay
+# tracked - the loading-screen kitty is assembled from those SVGs at runtime.
 /references
