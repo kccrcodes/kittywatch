@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { getSupabaseAdminClient } from "@/lib/supabase"
-import { generateClipEmbedding, embeddingToPgVector } from "@/lib/clip"
 import { REID_THRESHOLD, SIGHTING_STATUS } from "@/lib/config"
 import { isSupabaseStorageUrl } from "@/lib/photo-url"
 import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit"
@@ -64,9 +63,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Cat not found" }, { status: 404 })
   }
 
-  let embedding: number[] | null = null
+  let embeddingVector: string | null = null
   try {
-    embedding = await generateClipEmbedding(input.photo_url)
+    // Lazy import - transformers' native runtime crashes serverless routes
+    // if it loads at module init (see app/api/cats/route.ts).
+    const { generateClipEmbedding, embeddingToPgVector } = await import("@/lib/clip")
+    const embedding = await generateClipEmbedding(input.photo_url)
+    embeddingVector = embeddingToPgVector(embedding)
   } catch (err) {
     // Sighting still gets recorded without a confidence score rather than
     // rejecting the submission outright - see match_score handling below.
@@ -74,10 +77,10 @@ export async function POST(request: Request) {
   }
 
   let matchScore: number | null = null
-  if (embedding) {
+  if (embeddingVector) {
     const { data: matchRows, error: matchError } = await supabase.rpc("match_cat_embedding", {
       cat_id: input.cat_id,
-      query_embedding: embeddingToPgVector(embedding),
+      query_embedding: embeddingVector,
       threshold: REID_THRESHOLD,
     })
     if (matchError) {
@@ -95,7 +98,7 @@ export async function POST(request: Request) {
       p_photo_url: input.photo_url,
       p_status_update: input.status_update,
       p_notes: input.notes ?? null,
-      p_embedding: embedding ? embeddingToPgVector(embedding) : null,
+      p_embedding: embeddingVector,
       p_match_score: matchScore,
     })
     .single()

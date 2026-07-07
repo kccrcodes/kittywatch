@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { getSupabaseAdminClient } from "@/lib/supabase"
-import { generateClipEmbedding, embeddingToPgVector } from "@/lib/clip"
 import { boundingBoxFromRadius, fuzzCoordinate } from "@/lib/geo"
 import { isSupabaseStorageUrl } from "@/lib/photo-url"
 import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit"
@@ -83,9 +82,14 @@ export async function POST(request: Request) {
   }
   const fuzzed = fuzzCoordinate(input.lat, input.lng)
 
-  let embedding: number[] | null = null
+  let embeddingVector: string | null = null
   try {
-    embedding = await generateClipEmbedding(input.photo_url)
+    // Lazy import: @huggingface/transformers' native runtime must never
+    // load at module init - it can crash the whole route on serverless
+    // (GET /api/cats 500'd on Vercel from this import alone).
+    const { generateClipEmbedding, embeddingToPgVector } = await import("@/lib/clip")
+    const embedding = await generateClipEmbedding(input.photo_url)
+    embeddingVector = embeddingToPgVector(embedding)
   } catch (err) {
     // Founding embedding failing shouldn't block registration - the cat
     // still gets created; later sightings just have nothing to compare
@@ -104,7 +108,7 @@ export async function POST(request: Request) {
       p_lat: fuzzed.lat,
       p_lng: fuzzed.lng,
       p_photo_url: input.photo_url,
-      p_embedding: embedding ? embeddingToPgVector(embedding) : null,
+      p_embedding: embeddingVector,
       p_notes: input.notes ?? null,
     })
     .single()
