@@ -43,3 +43,7 @@ next-env.d.ts
 
 # throwaway CLIP de-risk test photos (scripts/derisk-clip.mjs)
 /scripts/clip-test-photos/
+
+
+/public/cat-parts
+/references

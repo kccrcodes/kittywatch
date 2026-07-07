@@ -174,20 +174,25 @@
   }
 }
 
-/* Indeterminate crawl for the CatWatch loading bar */
-@keyframes cw-progress {
-  0% {
-    width: 12%;
-  }
-  55% {
-    width: 78%;
-  }
-  80% {
-    width: 86%;
-  }
-  100% {
-    width: 92%;
-  }
+/* Themed scrollbar — pink pill thumb on a soft cream track */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--pink-300) var(--bg-soft);
+}
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-soft);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--pink-300);
+  border-radius: 999px;
+  border: 3px solid var(--bg-soft);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--pink-400);
 }
 
 /* Gentle pulse for recent-sighting map dots / missing pins */
@@ -203,15 +208,178 @@
   }
 }
 
-/* Soft bob for the loading-card cat doodle */
-@keyframes cw-bob {
+/*
+ * Loading-screen motion (design.md §7–8). Loops carry the `cw-motion`
+ * class so prefers-reduced-motion stops them; one-shot entrances/exits
+ * (cw-rise, cw-paw-pop, cw-card-out) stay short and subtle.
+ */
+
+/* Crossfade for loading↔ready swaps inside fixed-height slots */
+.cw-swap {
+  transition:
+    opacity 250ms ease,
+    transform 250ms ease;
+}
+
+/* Whole cat floats up and down */
+@keyframes cw-float-kf {
   0%,
   100% {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-6px);
+    transform: translateY(-5px);
   }
+}
+.cw-cat-float {
+  animation: cw-float-kf 2s ease-in-out infinite;
+}
+
+/* Head follows the float with a small phase delay and a hint of tilt */
+@keyframes cw-head-bob-kf {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-2.5px) rotate(-1deg);
+  }
+}
+.cw-head-bob {
+  animation: cw-head-bob-kf 2s ease-in-out 0.18s infinite;
+}
+
+/* Tail wags from its base (transform-origin set inline on the part) */
+@keyframes cw-tail-wag-kf {
+  0%,
+  100% {
+    transform: rotate(-7deg);
+  }
+  50% {
+    transform: rotate(9deg);
+  }
+}
+.cw-tail-wag {
+  animation: cw-tail-wag-kf 1.25s ease-in-out infinite;
+}
+
+/* Ground shadow breathes opposite the float */
+@keyframes cw-cat-shadow-kf {
+  0%,
+  100% {
+    transform: scaleX(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scaleX(0.86);
+    opacity: 0.55;
+  }
+}
+.cw-cat-shadow {
+  animation: cw-cat-shadow-kf 2s ease-in-out infinite;
+}
+
+/* Background leaves drift and rotate */
+@keyframes cw-leaf-drift-kf {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(10deg);
+  }
+}
+.cw-leaf-drift {
+  animation: cw-leaf-drift-kf 6s ease-in-out infinite;
+}
+
+/* Background paw prints softly pulse/fade */
+@keyframes cw-paw-pulse-kf {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.9;
+  }
+}
+.cw-paw-pulse {
+  animation: cw-paw-pulse-kf 3s ease-in-out infinite;
+}
+
+/* Loading. → Loading.. → Loading... ellipsis (static "..." if reduced) */
+@keyframes cw-dot-2-kf {
+  0%,
+  32% {
+    opacity: 0;
+  }
+  33%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes cw-dot-3-kf {
+  0%,
+  65% {
+    opacity: 0;
+  }
+  66%,
+  100% {
+    opacity: 1;
+  }
+}
+.cw-dot-2 {
+  animation: cw-dot-2-kf 1.4s linear infinite;
+}
+.cw-dot-3 {
+  animation: cw-dot-3-kf 1.4s linear infinite;
+}
+
+/* Paw marker success bounce when loading completes */
+@keyframes cw-paw-pop-kf {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.28) translateY(-2px);
+  }
+  65% {
+    transform: scale(0.94);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.cw-paw-pop {
+  animation: cw-paw-pop-kf 0.6s ease-out 1;
+}
+
+/* CTA / dashboard-preview entrance */
+@keyframes cw-rise-kf {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.cw-rise {
+  animation: cw-rise-kf 0.4s ease-out both;
+}
+
+/* Loading card exit (fade + shrink) */
+@keyframes cw-card-out-kf {
+  to {
+    opacity: 0;
+    transform: scale(0.92) translateY(10px);
+  }
+}
+.cw-card-out {
+  animation: cw-card-out-kf 0.45s ease-in forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -13,7 +13,7 @@ import { AlertsPanel } from "@/components/catwatch/alerts-panel";
 import { CatCard } from "@/components/catwatch/cat-card";
 import { CatDirectory } from "@/components/catwatch/cat-directory";
 import { CatMapPanel } from "@/components/catwatch/cat-map-panel";
-import { CatWatchLoading } from "@/components/catwatch/cat-watch-loading";
+import { CatWatchLoadingDemo } from "@/components/catwatch/cat-watch-loading-demo";
 import { DashboardShell } from "@/components/catwatch/dashboard-shell";
 import {
   CatFaceDoodle,
@@ -134,9 +134,9 @@ export default function UiLabPage() {
 
       <LabSection
         title="CatWatchLoading"
-        note="Branded loading screen; indeterminate here, accepts a progress prop. Also used full-screen."
+        note="Branded loading screen: progress fills over ~2.8s, then the CTA fades the card out and the dashboard slides in. Used full-screen as the site entry on /."
       >
-        <CatWatchLoading className="min-h-[380px]" />
+        <CatWatchLoadingDemo />
       </LabSection>
 
       <LabSection title="StatusBadge" note="Functional status colours, always paired with an icon shape.">
