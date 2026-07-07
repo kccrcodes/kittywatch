@@ -14,6 +14,7 @@ import { CatCard } from "@/components/catwatch/cat-card";
 import { CatDirectory } from "@/components/catwatch/cat-directory";
 import { CatMapPanel } from "@/components/catwatch/cat-map-panel";
 import { CatWatchLoadingDemo } from "@/components/catwatch/cat-watch-loading-demo";
+import { ReIdRevealDemo } from "@/components/catwatch/re-id-reveal-demo";
 import { DashboardShell } from "@/components/catwatch/dashboard-shell";
 import {
   CatFaceDoodle,
@@ -137,6 +138,13 @@ export default function UiLabPage() {
         note="Branded loading screen: progress fills over ~2.8s, then the CTA fades the card out and the dashboard slides in. Used full-screen as the site entry on /."
       >
         <CatWatchLoadingDemo />
+      </LabSection>
+
+      <LabSection
+        title="ReIdReveal"
+        note="design.md §7's most demo-able moment: the ring fills to the CLIP match score after a sighting submit. Tick on the ring = REID_THRESHOLD (0.70); below it the sighting is flagged."
+      >
+        <ReIdRevealDemo />
       </LabSection>
 
       <LabSection title="StatusBadge" note="Functional status colours, always paired with an icon shape.">
