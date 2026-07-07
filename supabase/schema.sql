@@ -218,3 +218,54 @@ begin
   return new_sighting;
 end;
 $$;
+
+-- Disappearance detection. Flips cats not seen in threshold_days to
+-- 'missing' and writes an alerts row for each. Filtering on
+-- `status <> 'missing'` means a cat already flagged missing won't get a
+-- duplicate alert on the next scheduled run.
+--
+-- Also callable directly from POST /api/admin/run-check with a
+-- configurable threshold - the demo can't wait 7 real days to show the
+-- missing-cat flow.
+create or replace function run_disappearance_check(threshold_days integer default 7)
+returns table(cat_id uuid, name text, last_seen_at timestamptz)
+language plpgsql
+as $$
+begin
+  return query
+  with newly_missing as (
+    update cats
+    set status = 'missing'
+    where cats.status <> 'missing'
+      and cats.last_seen_at is not null
+      and cats.last_seen_at < now() - (threshold_days || ' days')::interval
+    returning cats.id, cats.name, cats.last_seen_at
+  ),
+  inserted_alerts as (
+    insert into alerts (cat_id)
+    select newly_missing.id from newly_missing
+    returning alerts.cat_id
+  )
+  select nm.id, nm.name, nm.last_seen_at
+  from newly_missing nm;
+end;
+$$;
+
+-- Schedule the check daily via pg_cron rather than a separate Supabase Edge
+-- Function - same outcome, no extra deploy toolchain. Wrapped so re-running
+-- this file doesn't create duplicate scheduled jobs.
+create extension if not exists pg_cron;
+
+-- cron.unschedule(job_id bigint) is the original, version-stable signature
+-- (unlike the text-overload, which is newer and version-dependent) - delete
+-- by jobid looked up from cron.job rather than relying on it.
+select cron.unschedule(jobid) from cron.job where jobname = 'disappearance-check-daily';
+
+-- The 7 here is a literal, not lib/config.ts's MISSING_THRESHOLD_DAYS -
+-- cron.schedule needs a literal SQL command. Keep these in sync by hand if
+-- that constant ever changes.
+select cron.schedule(
+  'disappearance-check-daily',
+  '0 0 * * *', -- daily at midnight UTC
+  $cron$select run_disappearance_check(7)$cron$
+);
